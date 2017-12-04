@@ -849,7 +849,7 @@ bool button_order = FALSE;
 
 #if !MENU
 #undef MENU_ENCODING_LIST
-#undef MENU_MATCH_STRING_EXEC
+#undef MENU_FILE_OPEN
 #undef MENU_CUSTOM
 #endif
 
@@ -1053,7 +1053,7 @@ bool tabbar_status = TRUE;
 #define VTE_TABBAR TABBAR
 #endif
 
-#if defined(MENU_MATCH_STRING_EXEC) || defined(MATCH_STRING_L) || defined(MATCH_STRING_M)
+#if defined(MENU_FILE_OPEN) || defined(LEFT_CLICK) || defined(MIDDLE_CLICK)
 #if !MATCH_STRING_HTTP && !MATCH_STRING_MAIL && !MATCH_STRING_FILE && !defined(MATCH_STRING)
 #undef MATCH_STRING_HTTP
 #define MATCH_STRING_HTTP TRUE
@@ -1420,13 +1420,13 @@ GtkWidget *menu_paste;
 GtkWidget *menu_zoom_100;
 #endif
 
-#ifdef MENU_MATCH_STRING_EXEC
+#ifdef MENU_FILE_OPEN
 GtkWidget *match_open;
 GtkWidget *match_copy;
 GtkWidget *match_item;
 #endif
 
-#if defined(MENU_MATCH_STRING_EXEC) || defined(MATCH_STRING_L) || defined(MATCH_STRING_M)
+#if defined(MENU_FILE_OPEN) || defined(LEFT_CLICK) || defined(MIDDLE_CLICK)
 char *matched_url = NULL;
 #endif
 
@@ -1801,7 +1801,7 @@ static void do_title_changed(void)
 #endif
 #endif
 #if WINDOW_TITLE_DYNAMIC
-  gtk_window_set_title(GTK_WINDOW(main_window), vte_terminal_get_window_title(VTE_TERMINAL(term->vte)));
+  gtk_window_set_title(GTK_WINDOW(main_window), vte_terminal_get_window_title(VTE_TERMINAL(term->vte))?:VTE_PROGRAM_NAME);
 #endif
 }
 #endif
@@ -1813,7 +1813,7 @@ static void do_beep(void)
 }
 #endif
 
-#if MENU || defined(MATCH_STRING_L) || defined(MATCH_STRING_M)
+#if MENU || defined(LEFT_CLICK) || defined(MIDDLE_CLICK)
 static bool menu_popup(GtkWidget *widget, GdkEventButton *event)
 {
 #if BELL_URGENT
@@ -1823,18 +1823,18 @@ static bool menu_popup(GtkWidget *widget, GdkEventButton *event)
   GdkDisplay *display = gdk_window_get_display(event->window);
 #endif
 
-#if defined(MENU_MATCH_STRING_EXEC) || defined(MATCH_STRING_L) || defined(MATCH_STRING_M)
+#if defined(MENU_FILE_OPEN) || defined(LEFT_CLICK) || defined(MIDDLE_CLICK)
   int tag = -1;
 #endif
 
-#ifdef MATCH_STRING_L
+#ifdef LEFT_CLICK
   if (event->button == 1) {
     GET_CURRENT_TAB(gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)));
     matched_url = vte_terminal_match_check(VTE_TERMINAL(term->vte), event->x / vte_terminal_get_char_width(VTE_TERMINAL(term->vte)), event->y / vte_terminal_get_char_height(VTE_TERMINAL(term->vte)), &tag);
     if (matched_url != NULL) {
       char new_window_str[256];
       if (event->button == 1)
-        g_snprintf(new_window_str, sizeof(new_window_str), "%s '%s' &", MATCH_STRING_L, matched_url);
+        g_snprintf(new_window_str, sizeof(new_window_str), "%s %s", URL_HANDLER, matched_url);
       system(new_window_str);
       matched_url = NULL;
       return TRUE;
@@ -1842,14 +1842,14 @@ static bool menu_popup(GtkWidget *widget, GdkEventButton *event)
   }
 #endif
 
-#ifdef MATCH_STRING_M
+#ifdef MIDDLE_CLICK
   if (event->button == 2) {
     GET_CURRENT_TAB(gtk_notebook_get_current_page(GTK_NOTEBOOK(notebook)));
     matched_url = vte_terminal_match_check(VTE_TERMINAL(term->vte), event->x / vte_terminal_get_char_width(VTE_TERMINAL(term->vte)), event->y / vte_terminal_get_char_height(VTE_TERMINAL(term->vte)), &tag);
     if (matched_url != NULL) {
       char new_window_str[256];
       if (event->button == 2)
-        g_snprintf(new_window_str, sizeof(new_window_str), "%s '%s' &", MATCH_STRING_M, matched_url);
+        g_snprintf(new_window_str, sizeof(new_window_str), "%s %s", URL_HANDLER, matched_url);
       system(new_window_str);
       matched_url = NULL;
       return TRUE;
@@ -1878,7 +1878,7 @@ static bool menu_popup(GtkWidget *widget, GdkEventButton *event)
     else
       gtk_widget_set_sensitive(menu_zoom_100, FALSE);
 #endif
-#ifdef MENU_MATCH_STRING_EXEC
+#ifdef MENU_FILE_OPEN
       matched_url = vte_terminal_match_check(VTE_TERMINAL(term->vte), event->x / vte_terminal_get_char_width(VTE_TERMINAL(term->vte)), event->y / vte_terminal_get_char_height(VTE_TERMINAL(term->vte)), &tag);
       if (matched_url != NULL) {
         gtk_widget_show_all(menu);
@@ -1905,7 +1905,7 @@ static bool menu_popup(GtkWidget *widget, GdkEventButton *event)
             gdk_device_warp(event->device, gdk_display_get_default_screen(display), event->x_root, event->y_root);
         }
 #endif
-#ifdef MENU_MATCH_STRING_EXEC
+#ifdef MENU_FILE_OPEN
       }
 #endif
       return TRUE;
@@ -2314,7 +2314,7 @@ static void add_tab(void)
   g_signal_connect(term->vte, "beep", do_beep, NULL);
 #endif
 
-#if MENU || defined(MATCH_STRING_L) || defined(MATCH_STRING_M)
+#if MENU || defined(LEFT_CLICK) || defined(MIDDLE_CLICK)
   g_signal_connect(term->vte, "button-press-event", G_CALLBACK(menu_popup), NULL);
 #endif
 
@@ -3260,7 +3260,7 @@ static void do_copy(void)
 }
 #endif
 
-#ifdef MENU_MATCH_STRING_EXEC
+#ifdef MENU_FILE_OPEN
 static void do_match_copy(void)
 {
   gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD), matched_url, -1);
@@ -3268,11 +3268,11 @@ static void do_match_copy(void)
 }
 #endif
 
-#ifdef MENU_MATCH_STRING_EXEC
+#ifdef MENU_FILE_OPEN
 static void do_match_open(void)
 {
   char new_window_str[256];
-  g_snprintf(new_window_str, sizeof(new_window_str), "%s '%s' &", MENU_MATCH_STRING_EXEC, matched_url);
+  g_snprintf(new_window_str, sizeof(new_window_str), "%s %s", URL_HANDLER, matched_url);
   system(new_window_str);
   matched_url = NULL;
 }
@@ -4499,7 +4499,7 @@ int main(int argc, char **argv)
   }
 
 #if MENU
-#ifdef MENU_MATCH_STRING_EXEC
+#ifdef MENU_FILE_OPEN
 #ifdef MENU_CUSTOM
   if (menu_item_success > 0)
 #endif

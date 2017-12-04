@@ -1,4 +1,4 @@
-UNRELEASED
+0.5.2
  * Fix a bug for -e option with --name/--class, closes #14.
    Thanks to Sergey Zaytsev <https://github.com/zaytsev>
  * New COLOR_STYLE option: USER_CUSTOM
@@ -7,6 +7,10 @@ UNRELEASED
    Thanks to Alex Kritikos <https://github.com/akrito>
  * New COLOR_STYLE option: HOLO
    Thanks to Alex Kritikos <https://github.com/akrito>
+ * fixed security issue to not parse URIs correctly, closes #38
+   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=854585
+ * Fix assert error with zsh, closes #26.
+   Thanks to tantSinnister <https://github.com/tantSinnister>
 
 0.5.2~pre1
  * Support command line options: -fg, -bg, -sa
