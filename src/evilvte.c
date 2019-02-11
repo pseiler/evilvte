@@ -34,6 +34,7 @@
 #include <string.h>
 #include <vte/vte.h>
 #include <vte/vteaccess.h>
+#include <errno.h>
 
 #ifndef VTE_CHECK_VERSION
 #define VTE_CHECK_VERSION(x,y,z) FALSE
@@ -1654,6 +1655,44 @@ void *p_hdl_vte = NULL;
 bool has_resize_grip = 1;
 #endif
 
+static int validate_url (const char *matched_url, char *new_window_str, size_t new_window_len) {
+      if (matched_url == NULL || new_window_str == NULL || new_window_len == 0) {
+          errno = EINVAL;
+          return -1;
+      }
+      char *anfz = strchr(matched_url, '\'');
+      if (anfz != NULL) {
+          const char *hop;
+          char *fixed_url, *hop_f;
+          size_t fixed_url_len = strlen(matched_url);
+          for (hop = strchr(matched_url, '\''); hop != NULL; hop = strchr(hop+1, '\'')) {
+              fixed_url_len += 2;
+          }
+          fixed_url = malloc(fixed_url_len + 1);
+          if (fixed_url == NULL) {
+              return -1;
+          }
+          hop_f = fixed_url;
+          for (hop = matched_url; *hop != '\0'; hop++) {
+              if (*hop == '\'') {
+                  *hop_f++ = '%';
+                  *hop_f++ = '2';
+                  *hop_f++ = '7';
+              } else {
+              *hop_f = *hop;
+              hop_f++;
+              }
+          }
+        *hop_f = '\0';
+        g_snprintf(new_window_str, new_window_len, "%s '%s'", URL_HANDLER, fixed_url);
+        free(fixed_url);
+      }
+      else {
+        g_snprintf(new_window_str, new_window_len, "%s '%s'", URL_HANDLER, matched_url);
+      }
+      return 0;
+}
+
 #if CLOSE_DIALOG
 static GtkWidget* make_close_dialog(void)
 {
@@ -1833,11 +1872,13 @@ static bool menu_popup(GtkWidget *widget, GdkEventButton *event)
     matched_url = vte_terminal_match_check(VTE_TERMINAL(term->vte), event->x / vte_terminal_get_char_width(VTE_TERMINAL(term->vte)), event->y / vte_terminal_get_char_height(VTE_TERMINAL(term->vte)), &tag);
     if (matched_url != NULL) {
       char new_window_str[256];
-      if (event->button == 1)
-        g_snprintf(new_window_str, sizeof(new_window_str), "%s %s", URL_HANDLER, matched_url);
-      system(new_window_str);
-      matched_url = NULL;
-      return TRUE;
+      if (validate_url (matched_url, new_window_str,  sizeof(new_window_str)) == 0) {
+          system(new_window_str);
+          matched_url = NULL;
+          return TRUE;
+      } else {
+          fprintf(stderr, "%s\n", strerror(errno));
+      }
     }
   }
 #endif
@@ -1848,11 +1889,13 @@ static bool menu_popup(GtkWidget *widget, GdkEventButton *event)
     matched_url = vte_terminal_match_check(VTE_TERMINAL(term->vte), event->x / vte_terminal_get_char_width(VTE_TERMINAL(term->vte)), event->y / vte_terminal_get_char_height(VTE_TERMINAL(term->vte)), &tag);
     if (matched_url != NULL) {
       char new_window_str[256];
-      if (event->button == 2)
-        g_snprintf(new_window_str, sizeof(new_window_str), "%s %s", URL_HANDLER, matched_url);
-      system(new_window_str);
-      matched_url = NULL;
-      return TRUE;
+      if (validate_url (matched_url, new_window_str,  sizeof(new_window_str)) == 0) {
+          system(new_window_str);
+          matched_url = NULL;
+          return TRUE;
+      } else {
+          fprintf(stderr, "%s\n", strerror(errno));
+      }
     }
   }
 #endif
